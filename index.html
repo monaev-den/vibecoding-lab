@@ -1,15 +1,246 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Мой первый проект</title>
-</head>
-<body>
-    <h1>Привет!</h1>
-    <p>Этот сайт создан полностью с iPhone.</p>
+<!DOCTYPE html> <html lang="ru">
 
-    <button onclick="alert('Работает!')">
-        Нажми меня
-    </button>
-</body>
+<head>
+
+  <meta charset="utf-8" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+  <title>Инвестиции</title>
+
+  <style>
+
+    body {
+
+      margin: 0;
+
+      font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+
+      background: #f5f5f7;
+
+      color: #111;
+
+    }
+
+    .app {
+
+      max-width: 420px;
+
+      margin: 0 auto;
+
+      padding: 12px;
+
+    }
+
+    h1 {
+
+      font-size: 18px;
+
+      margin: 8px 0 12px;
+
+    }
+
+    .card {
+
+      background: #fff;
+
+      border-radius: 12px;
+
+      padding: 12px;
+
+      margin-bottom: 12px;
+
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+
+    }
+
+    input, select, button {
+
+      width: 100%;
+
+      padding: 10px;
+
+      margin-top: 8px;
+
+      border-radius: 10px;
+
+      border: 1px solid #ddd;
+
+      font-size: 14px;
+
+      box-sizing: border-box;
+
+    }
+
+    button {
+
+      background: #111;
+
+      color: #fff;
+
+      border: none;
+
+    }
+
+    button:active {
+
+      transform: scale(0.98);
+
+    }
+
+    .row {
+
+      display: flex;
+
+      gap: 8px;
+
+    }
+
+    .row > * {
+
+      flex: 1;
+
+    }
+
+    .stats div {
+
+      display: flex;
+
+      justify-content: space-between;
+
+      padding: 4px 0;
+
+      font-size: 14px;
+
+    }
+
+    .op {
+
+      border-bottom: 1px solid #eee;
+
+      padding: 8px 0;
+
+    }
+
+    .op:last-child {
+
+      border-bottom: none;
+
+    }
+
+    .meta {
+
+      font-size: 12px;
+
+      color: #666;
+
+    }
+
+    .amt {
+
+      font-weight: 600;
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+<div class="app">
+
+  <h1>Инвестиции</h1>
+ <div class="card">
+    <div class="row">
+      <input type="date" id="date" />
+      <select id="type">
+        <option value="USD">Доллар</option>
+        <option value="EUR">Евро</option>
+        <option value="STOCK">Акции</option>
+        <option value="BOND">Облигации</option>
+      </select>
+    </div><input type="number" id="amount" placeholder="Сумма" />
+<input type="text" id="comment" placeholder="Комментарий (необязательно)" />
+<button onclick="addOp()">Добавить</button> 
+ </div> 
+ <div class="card stats" id="stats"></div>  
+<div class="card" id="list"></div>
+</div><script>
+  const KEY = "invest_ops";
+
+  function load() {
+    return JSON.parse(localStorage.getItem(KEY) || "[]");
+  }
+
+  function save(data) {
+    localStorage.setItem(KEY, JSON.stringify(data));
+  }
+
+  function today() {
+    return new Date().toISOString().split("T")[0];
+  }
+
+  document.getElementById("date").value = today();
+
+  function addOp() {
+    const data = load();
+
+    const op = {
+      date: document.getElementById("date").value,
+      type: document.getElementById("type").value,
+      amount: parseFloat(document.getElementById("amount").value || "0"),
+      comment: document.getElementById("comment").value || ""
+    };
+
+    if (!op.amount) return;
+
+    data.push(op);
+    save(data);
+
+    document.getElementById("amount").value = "";
+    document.getElementById("comment").value = "";
+
+    render();
+  }
+
+  function render() {
+    const data = load().sort((a,b) => b.date.localeCompare(a.date));
+
+    const stats = { USD:0, EUR:0, STOCK:0, BOND:0 };
+
+    data.forEach(o => stats[o.type] += o.amount);
+
+    document.getElementById("stats").innerHTML = `
+      <div><span>Доллары</span><span>${stats.USD.toFixed(2)}</span></div>
+      <div><span>Евро</span><span>${stats.EUR.toFixed(2)}</span></div>
+      <div><span>Акции</span><span>${stats.STOCK.toFixed(2)}</span></div>
+      <div><span>Облигации</span><span>${stats.BOND.toFixed(2)}</span></div>
+      <div style="border-top:1px solid #eee; margin-top:6px; padding-top:6px;">
+        <span>Итого</span>
+        <span>${(stats.USD+stats.EUR+stats.STOCK+stats.BOND).toFixed(2)}</span>
+      </div>
+    `;
+
+    document.getElementById("list").innerHTML = data.map((o,i)=>`
+      <div class="op">
+        <div class="amt">${o.amount.toFixed(2)} ${o.type}</div>
+        <div class="meta">${o.date}${o.comment ? " · " + o.comment : ""}</div>
+      </div>
+    `).join("");
+  }
+
+  render();
+</script></body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
