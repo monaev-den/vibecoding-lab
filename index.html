@@ -1,246 +1,98 @@
-<!DOCTYPE html> <html lang="ru">
-
+<!DOCTYPE html>
+<html lang="ru">
 <head>
-
-  <meta charset="utf-8" />
-
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-
-  <title>Инвестиции</title>
-
-  <style>
-
-    body {
-
-      margin: 0;
-
-      font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif;
-
-      background: #f5f5f7;
-
-      color: #111;
-
-    }
-
-    .app {
-
-      max-width: 420px;
-
-      margin: 0 auto;
-
-      padding: 12px;
-
-    }
-
-    h1 {
-
-      font-size: 18px;
-
-      margin: 8px 0 12px;
-
-    }
-
-    .card {
-
-      background: #fff;
-
-      border-radius: 12px;
-
-      padding: 12px;
-
-      margin-bottom: 12px;
-
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-
-    }
-
-    input, select, button {
-
-      width: 100%;
-
-      padding: 10px;
-
-      margin-top: 8px;
-
-      border-radius: 10px;
-
-      border: 1px solid #ddd;
-
-      font-size: 14px;
-
-      box-sizing: border-box;
-
-    }
-
-    button {
-
-      background: #111;
-
-      color: #fff;
-
-      border: none;
-
-    }
-
-    button:active {
-
-      transform: scale(0.98);
-
-    }
-
-    .row {
-
-      display: flex;
-
-      gap: 8px;
-
-    }
-
-    .row > * {
-
-      flex: 1;
-
-    }
-
-    .stats div {
-
-      display: flex;
-
-      justify-content: space-between;
-
-      padding: 4px 0;
-
-      font-size: 14px;
-
-    }
-
-    .op {
-
-      border-bottom: 1px solid #eee;
-
-      padding: 8px 0;
-
-    }
-
-    .op:last-child {
-
-      border-bottom: none;
-
-    }
-
-    .meta {
-
-      font-size: 12px;
-
-      color: #666;
-
-    }
-
-    .amt {
-
-      font-weight: 600;
-
-    }
-
-  </style>
-
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Invest Vibe Engine</title>
+
+<style>
+body { font-family: Arial; margin:0; background:#0f1115; color:#fff; }
+header { padding:16px; font-size:18px; background:#161a22; }
+.container { padding:16px; }
+button {
+  padding:12px; width:100%; margin-top:10px;
+  background:#2d6cdf; border:0; color:white; border-radius:8px;
+}
+.card {
+  background:#1a1f2b; padding:12px; margin:8px 0;
+  border-radius:10px;
+}
+.small { opacity:0.7; font-size:12px; }
+</style>
 </head>
 
 <body>
 
-<div class="app">
+<header>Invest Vibe Engine (beta)</header>
 
-  <h1>Инвестиции</h1>
- <div class="card">
-    <div class="row">
-      <input type="date" id="date" />
-      <select id="type">
-        <option value="USD">Доллар</option>
-        <option value="EUR">Евро</option>
-        <option value="STOCK">Акции</option>
-        <option value="BOND">Облигации</option>
-      </select>
-    </div><input type="number" id="amount" placeholder="Сумма" />
-<input type="text" id="comment" placeholder="Комментарий (необязательно)" />
-<button onclick="addOp()">Добавить</button> 
- </div> 
- <div class="card stats" id="stats"></div>  
-<div class="card" id="list"></div>
-</div><script>
-  const KEY = "invest_ops";
+<div class="container">
 
-  function load() {
-    return JSON.parse(localStorage.getItem(KEY) || "[]");
-  }
+<button onclick="generate()">Сформировать аналитику дня</button>
 
-  function save(data) {
-    localStorage.setItem(KEY, JSON.stringify(data));
-  }
+<div id="output"></div>
 
-  function today() {
-    return new Date().toISOString().split("T")[0];
-  }
+</div>
 
-  document.getElementById("date").value = today();
+<script>
 
-  function addOp() {
-    const data = load();
+const assets = [
+  { type:"fx", name:"USD/RUB", price:92, change:1.2, week:2.5 },
+  { type:"fx", name:"EUR/RUB", price:100, change:0.4, week:1.1 },
 
-    const op = {
-      date: document.getElementById("date").value,
-      type: document.getElementById("type").value,
-      amount: parseFloat(document.getElementById("amount").value || "0"),
-      comment: document.getElementById("comment").value || ""
-    };
+  { type:"stock", name:"SBER", price:280, change:2.1, week:4.2 },
+  { type:"stock", name:"GAZP", price:165, change:-0.3, week:1.0 },
+  { type:"stock", name:"LKOH", price:7200, change:1.8, week:3.0 },
 
-    if (!op.amount) return;
+  { type:"bond", name:"OFZ 26238", price:95, change:0.1, week:0.3 },
+  { type:"bond", name:"OFZ 26240", price:97, change:0.2, week:0.5 }
+];
 
-    data.push(op);
-    save(data);
+function score(a){
+  let s = 0;
+  s += a.change * 2;
+  s += a.week;
 
-    document.getElementById("amount").value = "";
-    document.getElementById("comment").value = "";
+  if(a.type === "fx") s += 0.5;
+  if(a.type === "stock") s += 1;
 
-    render();
-  }
+  return s.toFixed(2);
+}
 
-  function render() {
-    const data = load().sort((a,b) => b.date.localeCompare(a.date));
+function generate(){
 
-    const stats = { USD:0, EUR:0, STOCK:0, BOND:0 };
+  let ranked = assets.map(a => ({
+    ...a,
+    score: parseFloat(score(a))
+  })).sort((a,b)=>b.score-a.score);
 
-    data.forEach(o => stats[o.type] += o.amount);
+  let fx = ranked.filter(x=>x.type==="fx");
+  let stocks = ranked.filter(x=>x.type==="stock");
+  let bonds = ranked.filter(x=>x.type==="bond");
 
-    document.getElementById("stats").innerHTML = `
-      <div><span>Доллары</span><span>${stats.USD.toFixed(2)}</span></div>
-      <div><span>Евро</span><span>${stats.EUR.toFixed(2)}</span></div>
-      <div><span>Акции</span><span>${stats.STOCK.toFixed(2)}</span></div>
-      <div><span>Облигации</span><span>${stats.BOND.toFixed(2)}</span></div>
-      <div style="border-top:1px solid #eee; margin-top:6px; padding-top:6px;">
-        <span>Итого</span>
-        <span>${(stats.USD+stats.EUR+stats.STOCK+stats.BOND).toFixed(2)}</span>
-      </div>
-    `;
+  let html = "";
 
-    document.getElementById("list").innerHTML = data.map((o,i)=>`
-      <div class="op">
-        <div class="amt">${o.amount.toFixed(2)} ${o.type}</div>
-        <div class="meta">${o.date}${o.comment ? " · " + o.comment : ""}</div>
-      </div>
-    `).join("");
-  }
+  html += "<div class='card'><b>Валюта</b>";
+  fx.forEach(x=>{
+    html += `<div>${x.name} | score ${x.score}</div>`;
+  });
+  html += "</div>";
 
-  render();
-</script></body>
+  html += "<div class='card'><b>Акции MOEX (топ)</b>";
+  stocks.slice(0,3).forEach(x=>{
+    html += `<div>${x.name} | score ${x.score}</div>`;
+  });
+  html += "</div>";
+
+  html += "<div class='card'><b>Облигации (топ)</b>";
+  bonds.slice(0,3).forEach(x=>{
+    html += `<div>${x.name} | score ${x.score}</div>`;
+  });
+  html += "</div>";
+
+  document.getElementById("output").innerHTML = html;
+}
+
+</script>
+
+</body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
