@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Invest Vibe Engine</title>
+
+<style>
+body { font-family: Arial; margin:0; background:#0f1115; color:#fff; }
+header { padding:16px; font-size:18px; background:#161a22; }
+.container { padding:16px; }
+button {
+  padding:12px; width:100%; margin-top:10px;
+  background:#2d6cdf; border:0; color:white; border-radius:8px;
+}
+.card {
+  background:#1a1f2b; padding:12px; margin:8px 0;
+  border-radius:10px;
+}
+.small { opacity:0.7; font-size:12px; }
+</style>
+</head>
+
+<body>
+
+<header>Invest Vibe Engine (beta)</header>
+
+<div class="container">
+
+<button onclick="generate()">Сформировать аналитику дня</button>
+
+<div id="output"></div>
+
+</div>
+
+<script>
+
+const assets = [
+  { type:"fx", name:"USD/RUB", price:92, change:1.2, week:2.5 },
+  { type:"fx", name:"EUR/RUB", price:100, change:0.4, week:1.1 },
+
+  { type:"stock", name:"SBER", price:280, change:2.1, week:4.2 },
+  { type:"stock", name:"GAZP", price:165, change:-0.3, week:1.0 },
+  { type:"stock", name:"LKOH", price:7200, change:1.8, week:3.0 },
+
+  { type:"bond", name:"OFZ 26238", price:95, change:0.1, week:0.3 },
+  { type:"bond", name:"OFZ 26240", price:97, change:0.2, week:0.5 }
+];
+
+function score(a){
+  let s = 0;
+  s += a.change * 2;
+  s += a.week;
+
+  if(a.type === "fx") s += 0.5;
+  if(a.type === "stock") s += 1;
+
+  return s.toFixed(2);
+}
+
+function generate(){
+
+  let ranked = assets.map(a => ({
+    ...a,
+    score: parseFloat(score(a))
+  })).sort((a,b)=>b.score-a.score);
+
+  let fx = ranked.filter(x=>x.type==="fx");
+  let stocks = ranked.filter(x=>x.type==="stock");
+  let bonds = ranked.filter(x=>x.type==="bond");
+
+  let html = "";
+
+  html += "<div class='card'><b>Валюта</b>";
+  fx.forEach(x=>{
+    html += `<div>${x.name} | score ${x.score}</div>`;
+  });
+  html += "</div>";
+
+  html += "<div class='card'><b>Акции MOEX (топ)</b>";
+  stocks.slice(0,3).forEach(x=>{
+    html += `<div>${x.name} | score ${x.score}</div>`;
+  });
+  html += "</div>";
+
+  html += "<div class='card'><b>Облигации (топ)</b>";
+  bonds.slice(0,3).forEach(x=>{
+    html += `<div>${x.name} | score ${x.score}</div>`;
+  });
+  html += "</div>";
+
+  document.getElementById("output").innerHTML = html;
+}
+
+</script>
+
+</body>
+</html>
