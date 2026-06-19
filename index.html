@@ -21,7 +21,7 @@ button {
 </head>
 <body>
 
-<header>Vibe Invest ver. 2026.06.19 14-18 </header>
+<header>Vibe Invest ver. 2026.06.19 14-23 </header>
 
 <div class="container">
 <button onclick="generate()">Сформировать аналитику дня</button>
@@ -38,6 +38,17 @@ button {
 </footer>
 
 <script>
+
+const STOCK_TICKERS = [
+  "SBER",
+  "GAZP",
+  "LKOH"
+];
+
+const BOND_TICKERS = [
+  "SU26238RMFS4",
+  "SU26240RMFS0"
+];
 
 let assets = [];
 
@@ -113,55 +124,57 @@ async function loadFxData() {
 
 async function loadStockData() {
 
-  return [
-    {
-      type:"stock",
-      ticker:"SBER",
+  const stockInfo = {
+    SBER: {
       name:"Сбербанк",
       price:280,
       change:2.1,
       week:4.2
     },
-    {
-      type:"stock",
-      ticker:"GAZP",
+    GAZP: {
       name:"Газпром",
       price:165,
       change:-0.3,
       week:1.0
     },
-    {
-      type:"stock",
-      ticker:"LKOH",
+    LKOH: {
       name:"Лукойл",
       price:7200,
       change:1.8,
       week:3.0
     }
-  ];
+  };
+
+  return STOCK_TICKERS.map(ticker => ({
+    type:"stock",
+    ticker,
+    ...stockInfo[ticker]
+  }));
 
 }
 
 async function loadBondData() {
 
-  return [
-    {
-      type:"bond",
-      ticker:"SU26238RMFS4",
+  const bondInfo = {
+    SU26238RMFS4: {
       name:"ОФЗ 26238",
       price:95,
       change:0.1,
       week:0.3
     },
-    {
-      type:"bond",
-      ticker:"SU26240RMFS0",
+    SU26240RMFS0: {
       name:"ОФЗ 26240",
       price:97,
       change:0.2,
       week:0.5
     }
-  ];
+  };
+
+  return BOND_TICKERS.map(ticker => ({
+    type:"bond",
+    ticker,
+    ...bondInfo[ticker]
+  }));
 
 }
 
