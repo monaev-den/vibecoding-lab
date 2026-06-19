@@ -121,37 +121,129 @@ async function loadFxData() {
 
   return fxAssets;
 }
+async function loadMoexQuote(ticker) {
 
+  const fallbackPrice = 280;
+
+  try {
+
+    const url =
+
+      `https://iss.moex.com/iss/engines/stock/markets/shares/securities/${ticker}.json`;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+
+      throw new Error("MOEX API unavailable");
+
+    }
+
+    const data = await response.json();
+
+    const columns = data.marketdata.columns;
+
+    const row = data.marketdata.data[0];
+
+    if (!row) {
+
+      throw new Error("No market data");
+
+    }
+
+    const getField = (name) => {
+
+      const idx = columns.indexOf(name);
+
+      return idx >= 0 ? row[idx] : null;
+
+    };
+
+    const price =
+
+      getField("LAST") ||
+
+      getField("MARKETPRICE") ||
+
+      getField("LCURRENTPRICE") ||
+
+      fallbackPrice;
+
+    console.log(`MOEX ${ticker}:`, price);
+
+    return Number(price);
+
+  } catch (err) {
+
+    console.warn(
+
+      `Не удалось получить цену ${ticker} из MOEX`,
+
+      err
+
+    );
+
+    return fallbackPrice;
+
+  }
+
+}
 async function loadStockData() {
 
+  const sberPrice = await loadMoexQuote("SBER");
+
   const stockInfo = {
+
     SBER: {
+
       name:"Сбербанк",
-      price:280,
+
+      price:sberPrice,
+
       change:2.1,
+
       week:4.2
+
     },
+
     GAZP: {
+
       name:"Газпром",
+
       price:165,
+
       change:-0.3,
+
       week:1.0
+
     },
+
     LKOH: {
+
       name:"Лукойл",
+
       price:7200,
+
       change:1.8,
+
       week:3.0
+
     }
+
   };
 
   return STOCK_TICKERS.map(ticker => ({
+
     type:"stock",
+
     ticker,
+
     ...stockInfo[ticker]
+
   }));
 
 }
+
 
 async function loadBondData() {
 
