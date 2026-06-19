@@ -4,7 +4,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Invest Vibe Engine</title>
-
 <style>
 body { font-family: Arial; margin:0; background:#0f1115; color:#fff; }
 header { padding:16px; font-size:18px; background:#161a22; }
@@ -20,118 +19,122 @@ button {
 .small { opacity:0.7; font-size:12px; }
 </style>
 </head>
-
 <body>
-
-<header>Invest Vibe Engine (beta 3)</header>
-
+<header>Invest Vibe Engine (beta 4)</header>
 <div class="container">
-
 <button onclick="generate()">Сформировать аналитику дня</button>
-
 <div id="output"></div>
-
 </div>
-
 <script>
-
-const assets = [
-  { type:"fx", name:"USD/RUB", price:92, change:1.2, week:2.5 },
-  { type:"fx", name:"EUR/RUB", price:100, change:0.4, week:1.1 },
-
-  { type:"stock", name:"SBER", price:280, change:2.1, week:4.2 },
-  { type:"stock", name:"GAZP", price:165, change:-0.3, week:1.0 },
-  { type:"stock", name:"LKOH", price:7200, change:1.8, week:3.0 },
-
-  { type:"bond", name:"OFZ 26238", price:95, change:0.1, week:0.3 },
-  { type:"bond", name:"OFZ 26240", price:97, change:0.2, week:0.5 }
-];
-
+let assets = [];
 function score(a){
   let s = 0;
   s += a.change * 2;
   s += a.week;
-
   if(a.type === "fx") s += 0.5;
   if(a.type === "stock") s += 1;
-
-  return s.toFixed(2);
+  return parseFloat(s.toFixed(2));
 }
-
-async function loadCBRRates() {
+async function loadFxData() {
+  const fxAssets = [
+    { type:"fx", name:"USD/RUB", price:92, change:1.2, week:2.5 },
+    { type:"fx", name:"EUR/RUB", price:100, change:0.4, week:1.1 }
+  ];
   try {
     const response = await fetch("https://www.cbr-xml-daily.ru/daily_json.js");
-
     if (!response.ok) {
       throw new Error("API unavailable");
     }
-
     const data = await response.json();
-
     const usd = data?.Valute?.USD?.Value;
     const eur = data?.Valute?.EUR?.Value;
-
-    const usdAsset = assets.find(a => a.name === "USD/RUB");
-    const eurAsset = assets.find(a => a.name === "EUR/RUB");
-
-    if (usd && usdAsset) {
-      usdAsset.price = usd;
+    if (usd) {
+      fxAssets[0].price = usd;
     }
-
-    if (eur && eurAsset) {
-      eurAsset.price = eur;
+    if (eur) {
+      fxAssets[1].price = eur;
     }
-
     console.log("Курсы ЦБ загружены:", {
       USD: usd,
       EUR: eur
     });
-
   } catch (err) {
-    console.warn("Не удалось загрузить курсы ЦБ. Используются значения по умолчанию.", err);
+    console.warn(
+      "Не удалось загрузить курсы ЦБ. Используются значения по умолчанию.",
+      err
+    );
   }
+  return fxAssets;
 }
-
-function generate(){
-
-  let ranked = assets.map(a => ({
-    ...a,
-    score: parseFloat(score(a))
-  })).sort((a,b)=>b.score-a.score);
-
-  let fx = ranked.filter(x=>x.type==="fx");
-  let stocks = ranked.filter(x=>x.type==="stock");
-  let bonds = ranked.filter(x=>x.type==="bond");
-
+async function loadStockData() {
+  return [
+    { type:"stock", name:"SBER", price:280, change:2.1, week:4.2 },
+    { type:"stock", name:"GAZP", price:165, change:-0.3, week:1.0 },
+    { type:"stock", name:"LKOH", price:7200, change:1.8, week:3.0 }
+  ];
+}
+async function loadBondData() {
+  return [
+    { type:"bond", name:"OFZ 26238", price:95, change:0.1, week:0.3 },
+    { type:"bond", name:"OFZ 26240", price:97, change:0.2, week:0.5 }
+  ];
+}
+function calculateScores(data) {
+  return data
+    .map(asset => ({
+      ...asset,
+      score: score(asset)
+    }))
+    .sort((a, b) => b.score - a.score);
+}
+function generateRecommendations(rankedAssets) {
+  return {
+    fx: rankedAssets.filter(x => x.type === "fx"),
+    stocks: rankedAssets.filter(x => x.type === "stock"),
+    bonds: rankedAssets.filter(x => x.type === "bond")
+  };
+}
+function render(recommendations) {
   let html = "";
-
   html += "<div class='card'><b>Валюта</b>";
-  fx.forEach(x=>{
+  recommendations.fx.forEach(x => {
     html += `<div>${x.name} | ${x.price.toFixed(2)} ₽ | score ${x.score}</div>`;
   });
   html += "</div>";
-
   html += "<div class='card'><b>Акции MOEX (топ)</b>";
-  stocks.slice(0,3).forEach(x=>{
+  recommendations.stocks.slice(0,3).forEach(x => {
     html += `<div>${x.name} | score ${x.score}</div>`;
   });
   html += "</div>";
-
   html += "<div class='card'><b>Облигации (топ)</b>";
-  bonds.slice(0,3).forEach(x=>{
+  recommendations.bonds.slice(0,3).forEach(x => {
     html += `<div>${x.name} | score ${x.score}</div>`;
   });
   html += "</div>";
-
   document.getElementById("output").innerHTML = html;
 }
-
-// Автоматическая загрузка курсов при открытии страницы
-loadCBRRates().then(() => {
+async function loadData() {
+  const fx = await loadFxData();
+  const stocks = await loadStockData();
+  const bonds = await loadBondData();
+  assets = [
+    ...fx,
+    ...stocks,
+    ...bonds
+  ];
+}
+function generate() {
+  const rankedAssets = calculateScores(assets);
+  const recommendations = generateRecommendations(
+    rankedAssets
+  );
+  render(recommendations);
+}
+async function init() {
+  await loadData();
   generate();
-});
-
+}
+init();
 </script>
-
 </body>
 </html>
