@@ -21,7 +21,7 @@ button {
 </head>
 <body>
 
-<header>Vibe Invest ver. 2026.06.19 14-23 </header>
+<header>Vibe Invest ver. 2026.06.20 02-00 </header>
 
 <div class="container">
 <button onclick="generate()">Сформировать аналитику дня</button>
@@ -306,7 +306,7 @@ function render(recommendations) {
   html += "<div class='card'><b>Акции MOEX (топ)</b>";
 
   recommendations.stocks.slice(0,3).forEach(x => {
-    html += `<div>${x.ticker} (${x.name}) | score ${x.score}</div>`;
+    html += `<div>${x.ticker} (${x.name}) | ${x.price} ₽ | score ${x.score}</div>`;
   });
 
   html += "</div>";
