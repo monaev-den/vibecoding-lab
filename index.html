@@ -190,7 +190,11 @@ async function loadMoexQuote(ticker) {
 }
 async function loadStockData() {
 
-  const sberPrice = await loadMoexQuote("SBER");
+  const quotes = {};
+
+for (const ticker of STOCK_TICKERS) {
+  quotes[ticker] = await loadMoexQuote(ticker);
+}
 
   const stockInfo = {
 
