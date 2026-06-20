@@ -49,7 +49,7 @@ button {
 <!-- ============================================================
   БЛОК: ШАПКА — название приложения и версия/дата сборки
   ============================================================ -->
-<header>Vibe Invest ver. 2026.06.21 00-52 </header>
+<header>Vibe Invest ver. 2026.06.21 00-59 </header>
 <!-- ============================================================
   КОНЕЦ БЛОКА: ШАПКА
   ============================================================ -->
@@ -404,10 +404,12 @@ function generateRecommendations(rankedAssets) {
    КОНЕЦ БЛОКА: ФОРМИРОВАНИЕ РЕКОМЕНДАЦИЙ
    ============================================================ */
    
+   
+    
 /* ============================================================
    БЛОК: РЕКОМЕНДАЦИЯ ДНЯ — buildDailyRecommendation()
    Находит лучшие активы каждой категории.
-   Дополнительно формирует пояснение причины выбора.
+   Формирует объяснение на основании данных актива.
    ============================================================ */
 function buildDailyRecommendation(recommendations) {
 
@@ -436,17 +438,17 @@ function buildDailyRecommendation(recommendations) {
 
     fxReason:
       bestFx
-        ? "лучший рейтинг среди валют"
+        ? `score ${bestFx.score}, неделя ${bestFx.week}%`
         : "",
 
     stockReason:
       bestStock
-        ? "максимальный score среди акций"
+        ? `score ${bestStock.score}, неделя ${bestStock.week}%`
         : "",
 
     bondReason:
       bestBond
-        ? "лучший рейтинг среди облигаций"
+        ? `score ${bestBond.score}, неделя ${bestBond.week}%`
         : ""
 
   };
@@ -455,6 +457,7 @@ function buildDailyRecommendation(recommendations) {
 /* ============================================================
    КОНЕЦ БЛОКА: РЕКОМЕНДАЦИЯ ДНЯ
    ============================================================ */
+
 
 /* ============================================================
    БЛОК: РЕНДЕР — render(recommendations)
@@ -477,16 +480,19 @@ function render(recommendations) {
   html += "<b>Рекомендация дня</b>";
 
   if (daily.fx) {
-    html += `<div>Валюта: ${daily.fx.ticker}</div>`;
-  }
+  html += `<div>Валюта: ${daily.fx.ticker}</div>`;
+  html += `<div class='small'>${daily.fxReason}</div>`;
+}
 
   if (daily.stock) {
-    html += `<div>Акция: ${daily.stock.ticker}</div>`;
-  }
+  html += `<div>Акция: ${daily.stock.ticker}</div>`;
+  html += `<div class='small'>${daily.stockReason}</div>`;
+}
 
   if (daily.bond) {
-    html += `<div>Облигация: ${daily.bond.name}</div>`;
-  }
+  html += `<div>Облигация: ${daily.bond.name}</div>`;
+  html += `<div class='small'>${daily.bondReason}</div>`;
+}
 
   html += "</div>";
 
