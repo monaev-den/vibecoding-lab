@@ -49,7 +49,7 @@ button {
 <!-- ============================================================
   БЛОК: ШАПКА — название приложения и версия/дата сборки
   ============================================================ -->
-<header>Vibe Invest ver. 2026.06.20 19-31 </header>
+<header>Vibe Invest ver. 2026.06.20 21-03 </header>
 <!-- ============================================================
   КОНЕЦ БЛОКА: ШАПКА
   ============================================================ -->
@@ -410,12 +410,29 @@ function generateRecommendations(rankedAssets) {
    Пока использует рейтинг score.
    Позже здесь будет AI и реальные данные рынка.
    ============================================================ */
+
+
 function buildDailyRecommendation(recommendations) {
 
+  const bestFx =
+    recommendations.fx.length > 0
+      ? recommendations.fx[0]
+      : null;
+
+  const bestStock =
+    recommendations.stocks.length > 0
+      ? recommendations.stocks[0]
+      : null;
+
+  const bestBond =
+    recommendations.bonds.length > 0
+      ? recommendations.bonds[0]
+      : null;
+
   return {
-    fx: null,
-    stock: null,
-    bond: null
+    fx: bestFx,
+    stock: bestStock,
+    bond: bestBond
   };
 
 }
