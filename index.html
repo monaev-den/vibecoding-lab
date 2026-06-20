@@ -21,7 +21,7 @@ button {
 </head>
 <body>
 
-<header>Vibe Invest ver. 2026.06.20 02-20 </header>
+<header>Vibe Invest ver. 2026.06.20 09-00 </header>
 
 <div class="container">
 <button onclick="generate()">Сформировать аналитику дня</button>
@@ -190,11 +190,7 @@ async function loadMoexQuote(ticker) {
 }
 async function loadStockData() {
 
-  const quotes = {};
-
-for (const ticker of STOCK_TICKERS) {
-  quotes[ticker] = await loadMoexQuote(ticker);
-}
+  const sberPrice = await loadMoexQuote("SBER");
 
   const stockInfo = {
 
