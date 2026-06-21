@@ -615,6 +615,31 @@ if (idea) {
 
   html += "</div>";
 
+/* --- Получаем историю --- */
+const history =
+  JSON.parse(
+    localStorage.getItem("history") || "[]"
+  );
+
+/* --- Карточка: История рекомендаций --- */
+html += "<div class='card'>";
+
+html += "<b>История рекомендаций</b>";
+
+history.slice(0,5).forEach(x => {
+
+  html += `
+    <div>
+      ${x.date.substring(0,10)}
+      | ${x.stock}
+      | ${x.fx}
+    </div>
+  `;
+
+});
+
+html += "</div>";
+
   /* --- Карточка: Валюта --- */
   html += "<div class='card'><b>Валюта</b>";
 
