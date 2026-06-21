@@ -49,7 +49,7 @@ button {
 <!-- ============================================================
   БЛОК: ШАПКА — название приложения и версия/дата сборки
   ============================================================ -->
-<header>Vibe Invest ver. 2026.06.21 17-29 </header>
+<header>Vibe Invest ver. 2026.06.21 23-24 </header>
 <!-- ============================================================
   КОНЕЦ БЛОКА: ШАПКА
   ============================================================ -->
@@ -92,11 +92,6 @@ button {
    STOCK_TICKERS  — акции MOEX
    BOND_TICKERS   — облигации (ОФЗ)
    ============================================================ */
-const STOCK_TICKERS = [
-  "SBER",
-  "GAZP",
-  "LKOH"
-];
 
 const BOND_TICKERS = [
   "SU26238RMFS4",
@@ -105,6 +100,48 @@ const BOND_TICKERS = [
 /* ============================================================
    КОНЕЦ БЛОКА: КОНФИГУРАЦИЯ
    ============================================================ */
+
+
+/* ============================================================
+   БЛОК: ЗАГРУЗКА СПИСКА АКЦИЙ МОСБИРЖИ
+   Получаем список ликвидных акций с рынка.
+   ============================================================ */
+
+async function loadMoexTickers() {
+
+  try {
+
+    const response = await fetch(
+      "https://iss.moex.com/iss/engines/stock/markets/shares/securities.json"
+    );
+
+    const data = await response.json();
+
+    const securities = data.securities;
+
+    const secIdIndex =
+      securities.columns.indexOf("SECID");
+
+    return securities.data
+      .slice(0,100)
+      .map(row => row[secIdIndex]);
+
+  } catch(err) {
+
+    console.error(err);
+
+    return [
+      "SBER",
+      "GAZP",
+      "LKOH",
+      "ROSN",
+      "NVTK"
+    ];
+
+  }
+
+}
+
 
 /* ============================================================
    БЛОК: ГЛОБАЛЬНОЕ ХРАНИЛИЩЕ АКТИВОВ
@@ -305,56 +342,56 @@ return {
    КОНЕЦ БЛОКА: ЗАГРУЗКА ОДНОЙ АКЦИИ MOEX
    ============================================================ */
 
+
 /* ============================================================
-   БЛОК: ЗАГРУЗКА ВСЕХ АКЦИЙ — loadStockData()
-   Реальный запрос к MOEX делается только для SBER.
-   GAZP и LKOH используют захардкоженные данные (расширь по аналогии).
-   change и week — захардкожены для всех акций.
-   Возвращает массив объектов по тикерам из STOCK_TICKERS.
+   БЛОК: ЗАГРУЗКА ВСЕХ АКЦИЙ МОСБИРЖИ
    ============================================================ */
+
 async function loadStockData() {
 
-  /* --- Запрос реальной цены SBER через loadMoexQuote --- */
-  const sberData = await loadMoexQuote("SBER");
+  const tickers =
+    await loadMoexTickers();
 
-  /* --- Справочник акций: имя, цена (реальная или fallback), изменения --- */
-  const stockInfo = {
+  const result = [];
 
-    SBER: {
-  name:"Сбербанк",
-  price:sberData.price,
-  change:sberData.change,
-  week:4.2
-},
+  for (const ticker of tickers.slice(0,30)) {
 
-    GAZP: {
-      name:"Газпром",
-      price:165,         // захардкожена
-      change:-0.3,
-      week:1.0
-    },
+    try {
 
-    LKOH: {
-      name:"Лукойл",
-      price:7200,        // захардкожена
-      change:1.8,
-      week:3.0
+      const quote =
+        await loadMoexQuote(ticker);
+
+      result.push({
+
+        type: "stock",
+
+        ticker,
+
+        name: ticker,
+
+        price: quote.price,
+
+        change: quote.change,
+
+        week: quote.change * 5
+
+      });
+
+    } catch(e) {
+
+      console.log(
+        "Ошибка загрузки",
+        ticker
+      );
+
     }
 
-  };
+  }
 
-  /* --- Собираем массив активов по списку тикеров из конфигурации --- */
-  return STOCK_TICKERS.map(ticker => ({
-    type:"stock",
-    ticker,
-    ...stockInfo[ticker]
-  }));
+  return result;
 
 }
-/* ============================================================
-   КОНЕЦ БЛОКА: ЗАГРУЗКА ВСЕХ АКЦИЙ
-   ============================================================ */
-
+  
 /* ============================================================
    БЛОК: ЗАГРУЗКА ОБЛИГАЦИЙ — loadBondData()
    Все данные захардкожены (внешних запросов нет).
