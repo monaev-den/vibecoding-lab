@@ -49,7 +49,7 @@ button {
 <!-- ============================================================
   БЛОК: ШАПКА — название приложения и версия/дата сборки
   ============================================================ -->
-<header>Vibe Invest ver. 2026.06.21 16-50 </header>
+<header>Vibe Invest ver. 2026.06.21 17-29 </header>
 <!-- ============================================================
   КОНЕЦ БЛОКА: ШАПКА
   ============================================================ -->
@@ -262,15 +262,31 @@ async function loadMoexQuote(ticker) {
     };
 
     /* --- Выбираем первое непустое ценовое поле из приоритетного списка --- */
-    const price =
-      getField("LAST") ||
-      getField("MARKETPRICE") ||
-      getField("LCURRENTPRICE") ||
-      fallbackPrice;
+    const last =
+  getField("LAST") ||
+  getField("MARKETPRICE") ||
+  getField("LCURRENTPRICE") ||
+  fallbackPrice;
 
-    console.log(`MOEX ${ticker}:`, price);
+const prev =
+  getField("LASTTOPREVPRICE") ||
+  last;
 
-    return Number(price);
+const change =
+  prev
+    ? ((last - prev) / prev) * 100
+    : 0;
+
+console.log(`MOEX ${ticker}:`, {
+  last,
+  prev,
+  change
+});
+
+return {
+  price: Number(last),
+  change: Number(change.toFixed(2))
+};
 
   } catch (err) {
 
@@ -299,17 +315,17 @@ async function loadMoexQuote(ticker) {
 async function loadStockData() {
 
   /* --- Запрос реальной цены SBER через loadMoexQuote --- */
-  const sberPrice = await loadMoexQuote("SBER");
+  const sberData = await loadMoexQuote("SBER");
 
   /* --- Справочник акций: имя, цена (реальная или fallback), изменения --- */
   const stockInfo = {
 
     SBER: {
-      name:"Сбербанк",
-      price:sberPrice,   // реальная цена с MOEX
-      change:2.1,
-      week:4.2
-    },
+  name:"Сбербанк",
+  price:sberData.price,
+  change:sberData.change,
+  week:4.2
+},
 
     GAZP: {
       name:"Газпром",
@@ -711,8 +727,7 @@ function saveHistory(recommendations) {
 
   const record = {
 
-    date: new Date().toISOString(),
-
+date: new Date().toISOString(),
     fx:
       daily.fx
         ? daily.fx.ticker
@@ -727,7 +742,11 @@ function saveHistory(recommendations) {
       daily.bond
         ? daily.bond.ticker
         : null
-
+stockPrice:
+  daily.stock
+    ? daily.stock.price
+    : null
+    
   };
 
   const history =
@@ -760,8 +779,9 @@ function generate() {
   const rankedAssets    = calculateScores(assets);
   const recommendations = generateRecommendations(rankedAssets);
 
-  render(recommendations);
+  
   saveHistory(recommendations);
+  render(recommendations);
 }
 /* ============================================================
    КОНЕЦ БЛОКА: ТОЧКА ВХОДА КНОПКИ
