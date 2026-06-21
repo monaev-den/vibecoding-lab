@@ -49,7 +49,7 @@ button {
 <!-- ============================================================
   БЛОК: ШАПКА — название приложения и версия/дата сборки
   ============================================================ -->
-<header>Vibe Invest ver. 2026.06.21 16-41 </header>
+<header>Vibe Invest ver. 2026.06.21 16-50 </header>
 <!-- ============================================================
   КОНЕЦ БЛОКА: ШАПКА
   ============================================================ -->
@@ -139,6 +139,14 @@ function score(a){
 /* ============================================================
    КОНЕЦ БЛОКА: ФУНКЦИЯ СКОРИНГА
    ============================================================ */
+
+
+
+
+const history =
+  JSON.parse(
+    localStorage.getItem("history") || "[]"
+  );
 
 /* ============================================================
    БЛОК: ЗАГРУЗКА ВАЛЮТ — loadFxData()
@@ -642,7 +650,23 @@ if (idea) {
    КОНЕЦ БЛОКА: РЕНДЕР
    ============================================================ */
 
+html += "<div class='card'>";
 
+html += "<b>История рекомендаций</b>";
+
+history.slice(0,5).forEach(x => {
+
+  html += `
+    <div>
+      ${x.date.substring(0,10)}
+      | ${x.stock}
+      | ${x.fx}
+    </div>
+  `;
+
+});
+
+html += "</div>";
 
 
 /* ============================================================
@@ -667,6 +691,57 @@ async function loadData() {
    КОНЕЦ БЛОКА: ЗАГРУЗКА ВСЕХ ДАННЫХ
    ============================================================ */
 
+/* =======
+блок: История рекомендаций
+====== */
+
+
+function saveHistory(recommendations) {
+
+  const daily =
+    buildDailyRecommendation(recommendations);
+
+  const record = {
+
+    date: new Date().toISOString(),
+
+    fx:
+      daily.fx
+        ? daily.fx.ticker
+        : null,
+
+    stock:
+      daily.stock
+        ? daily.stock.ticker
+        : null,
+
+    bond:
+      daily.bond
+        ? daily.bond.ticker
+        : null
+
+  };
+
+  const history =
+    JSON.parse(
+      localStorage.getItem("history") || "[]"
+    );
+
+  history.unshift(record);
+
+  localStorage.setItem(
+    "history",
+    JSON.stringify(history.slice(0,30))
+  );
+
+}
+
+/* =======
+конец блока: История рекомендаций
+====== */
+
+
+
 /* ============================================================
    БЛОК: ТОЧКА ВХОДА КНОПКИ — generate()
    Вызывается по клику на кнопку "Сформировать аналитику дня".
@@ -678,7 +753,7 @@ function generate() {
   const recommendations = generateRecommendations(rankedAssets);
 
   render(recommendations);
-
+  saveHistory(recommendations);
 }
 /* ============================================================
    КОНЕЦ БЛОКА: ТОЧКА ВХОДА КНОПКИ
