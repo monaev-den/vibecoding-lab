@@ -49,7 +49,7 @@ button {
 <!-- ============================================================
   БЛОК: ШАПКА — название приложения и версия/дата сборки
   ============================================================ -->
-<header>Vibe Invest ver. 2026.06.21 09-37 </header>
+<header>Vibe Invest ver. 2026.06.21 10-15 </header>
 <!-- ============================================================
   КОНЕЦ БЛОКА: ШАПКА
   ============================================================ -->
@@ -522,7 +522,33 @@ function render(recommendations) {
   /* --- Получаем лучшие активы дня --- */
   const daily = buildDailyRecommendation(recommendations);
 
+/* --- Формируем инвестиционную идею --- */
+const idea = buildInvestmentIdea(daily);
+
   /* --- Карточка: Рекомендация дня --- */
+/* --- Карточка: Инвестиционная идея дня --- */
+if (idea) {
+
+  html += "<div class='card'>";
+
+  html += "<b>Инвестиционная идея дня</b>";
+
+  html += `<div>Купить: ${idea.ticker}</div>`;
+
+  html += `<div class='small'>${idea.reason}</div>`;
+
+  html += `<div>Лотов: ${idea.lots}</div>`;
+
+  html += `<div>Сумма: ${idea.totalCost.toFixed(0)} ₽</div>`;
+
+  html += `<div>Остаток: ${idea.cashLeft.toFixed(0)} ₽</div>`;
+
+  html += "</div>";
+
+}
+
+
+
   html += "<div class='card'>";
   html += "<b>Рекомендация дня</b>";
 
