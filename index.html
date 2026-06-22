@@ -101,6 +101,15 @@ localStorage.setItem(
   "geminiKey",
   GEMINI_API_KEY
 );
+
+
+/* ============================================================
+   БЛОК: URL GEMINI API
+   ============================================================ */
+
+const GEMINI_URL =
+  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
 /* ============================================================
    БЛОК: КОНФИГУРАЦИЯ — списки тикеров
    Добавляй/убирай тикеры здесь, логика подхватит автоматически.
@@ -1009,13 +1018,19 @@ async function generate() {
   }
   catch(error) {
 
-    console.error(error);
+  console.error(
+    "Gemini error:",
+    error
+  );
 
-    document.getElementById("output")
-      .innerHTML =
-      "<div class='card'>Ошибка Gemini API</div>";
+  alert(
+    JSON.stringify(error)
+  );
 
-  }
+  document.getElementById("output")
+    .innerHTML =
+    "<div class='card'>Ошибка Gemini API</div>";
+}
 
 }
 /* ============================================================
