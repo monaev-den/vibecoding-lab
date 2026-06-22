@@ -49,7 +49,7 @@ button {
 <!-- ============================================================
   БЛОК: ШАПКА — название приложения и версия/дата сборки
   ============================================================ -->
-<header>Vibe Invest ver. 2026.06.22 06-32 </header>
+<header>Vibe Invest ver. 2026.06.22 22-11 </header>
 <!-- ============================================================
   КОНЕЦ БЛОКА: ШАПКА
   ============================================================ -->
@@ -87,21 +87,20 @@ button {
 <script>
 
 /* ============================================================
-   БЛОК: GEMINI API
-   Получить ключ:
-   https://aistudio.google.com
+ /* ============================================================
+   БЛОК: ВВОД GEMINI API KEY
+   Ключ запрашивается при запуске приложения.
+   В коде не хранится.
    ============================================================ */
 
 const GEMINI_API_KEY =
-"sk-ant-api03–MakCxJJxjCxs1KXjubcbQfzK3McUZtJrAM5GMPNq2ImbEjtfm4l1fanWpdmW1ir3FurqdHAqnMPnxEJLv0kzw-175G3QAA";
+  localStorage.getItem("geminiKey") ||
+  prompt("Введите Gemini API Key");
 
-
-
-const GEMINI_URL =
-`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-
-
-
+localStorage.setItem(
+  "geminiKey",
+  GEMINI_API_KEY
+);
 /* ============================================================
    БЛОК: КОНФИГУРАЦИЯ — списки тикеров
    Добавляй/убирай тикеры здесь, логика подхватит автоматически.
