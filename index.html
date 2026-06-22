@@ -49,7 +49,7 @@ button {
 <!-- ============================================================
   БЛОК: ШАПКА — название приложения и версия/дата сборки
   ============================================================ -->
-<header>Vibe Invest ver. 2026.06.22 22-11 </header>
+<header>Vibe Invest ver. 2026.06.22 22-30 </header>
 <!-- ============================================================
   КОНЕЦ БЛОКА: ШАПКА
   ============================================================ -->
@@ -103,13 +103,13 @@ localStorage.setItem(
 );
 
 
+
 /* ============================================================
-   БЛОК: URL GEMINI API
+   БЛОК: URL GEMINI
    ============================================================ */
 
 const GEMINI_URL =
   `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-
 /* ============================================================
    БЛОК: КОНФИГУРАЦИЯ — списки тикеров
    Добавляй/убирай тикеры здесь, логика подхватит автоматически.
@@ -842,6 +842,15 @@ async function askGemini() {
   const data =
     await response.json();
 
+console.log("GEMINI RESPONSE:");
+console.log(data);
+
+if (!response.ok) {
+  throw new Error(
+    JSON.stringify(data)
+  );
+}
+
   const text =
     data.candidates[0]
       .content.parts[0]
@@ -1018,18 +1027,18 @@ async function generate() {
   }
   catch(error) {
 
-  console.error(
-    "Gemini error:",
-    error
-  );
-
-  alert(
-    JSON.stringify(error)
-  );
+  console.error(error);
 
   document.getElementById("output")
     .innerHTML =
-    "<div class='card'>Ошибка Gemini API</div>";
+    `
+    <div class='card'>
+      Ошибка Gemini API
+      <br><br>
+      ${error.message}
+    </div>
+    `;
+
 }
 
 }
