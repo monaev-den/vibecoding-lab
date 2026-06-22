@@ -49,7 +49,7 @@ button {
 <!-- ============================================================
   БЛОК: ШАПКА — название приложения и версия/дата сборки
   ============================================================ -->
-<header>Vibe Invest ver. 2026.06.21 23-24 </header>
+<header>Vibe Invest ver. 2026.06.22 06-17 </header>
 <!-- ============================================================
   КОНЕЦ БЛОКА: ШАПКА
   ============================================================ -->
@@ -85,6 +85,20 @@ button {
   БЛОК: СКРИПТ — вся бизнес-логика приложения
   ============================================================ -->
 <script>
+
+/* ============================================================
+   БЛОК: GEMINI API
+   Получить ключ:
+   https://aistudio.google.com
+   ============================================================ */
+
+const GEMINI_API_KEY =
+"ВСТАВЬ_СЮДА_СВОЙ_КЛЮЧ";
+
+const GEMINI_URL =
+`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+
 
 /* ============================================================
    БЛОК: КОНФИГУРАЦИЯ — списки тикеров
@@ -728,7 +742,172 @@ html += "</div>";
    КОНЕЦ БЛОКА: РЕНДЕР
    ============================================================ */
 
+/* ============================================================
+   БЛОК: ЗАПРОС К GEMINI
+   ============================================================ */
 
+async function askGemini() {
+
+  const prompt = `
+
+Ты инвестиционный аналитик российского рынка.
+
+На основании актуальной информации из интернета:
+
+1. Определи:
+   покупать USD,
+   покупать EUR,
+   или не покупать валюту.
+
+2. Назови топ 3 акции Мосбиржи
+   для покупки сегодня.
+
+3. Назови топ 3 облигации
+   для покупки сегодня.
+
+Верни ТОЛЬКО JSON.
+
+Пример:
+
+{
+  "currency":"USD",
+  "currencyReason":"ожидается ослабление рубля",
+
+  "stocks":[
+    {
+      "ticker":"SBER",
+      "reason":"..."
+    },
+    {
+      "ticker":"LKOH",
+      "reason":"..."
+    },
+    {
+      "ticker":"T",
+      "reason":"..."
+    }
+  ],
+
+  "bonds":[
+    {
+      "ticker":"SU26248RMFS3",
+      "reason":"..."
+    },
+    {
+      "ticker":"SU26247RMFS5",
+      "reason":"..."
+    },
+    {
+      "ticker":"SU26246RMFS7",
+      "reason":"..."
+    }
+  ]
+}
+`;
+
+  const response =
+    await fetch(
+      GEMINI_URL,
+      {
+        method:"POST",
+
+        headers:{
+          "Content-Type":"application/json"
+        },
+
+        body:JSON.stringify({
+          contents:[
+            {
+              parts:[
+                {
+                  text:prompt
+                }
+              ]
+            }
+          ]
+        })
+      }
+    );
+
+  const data =
+    await response.json();
+
+  const text =
+    data.candidates[0]
+      .content.parts[0]
+      .text;
+
+  return JSON.parse(
+    text.replace(/```json/g,"")
+        .replace(/```/g,"")
+        .trim()
+  );
+}
+
+/* ============================================================
+   БЛОК: ОТРИСОВКА AI РЕКОМЕНДАЦИЙ
+   ============================================================ */
+
+function renderAIRecommendation(data) {
+
+  let html = "";
+
+  html += `
+  <div class="card">
+    <b>Валюта</b>
+    <div>${data.currency}</div>
+    <div class="small">
+      ${data.currencyReason}
+    </div>
+  </div>
+  `;
+
+  html += `
+  <div class="card">
+    <b>Топ 3 акции</b>
+  `;
+
+  data.stocks.forEach(x => {
+
+    html += `
+      <div>
+        ${x.ticker}
+      </div>
+
+      <div class="small">
+        ${x.reason}
+      </div>
+    `;
+
+  });
+
+  html += "</div>";
+
+  html += `
+  <div class="card">
+    <b>Топ 3 облигации</b>
+  `;
+
+  data.bonds.forEach(x => {
+
+    html += `
+      <div>
+        ${x.ticker}
+      </div>
+
+      <div class="small">
+        ${x.reason}
+      </div>
+    `;
+
+  });
+
+  html += "</div>";
+
+  document.getElementById("output")
+    .innerHTML = html;
+
+}
 
 /* ============================================================
    БЛОК: ЗАГРУЗКА ВСЕХ ДАННЫХ — loadData()
@@ -811,14 +990,32 @@ stockPrice:
    Вызывается по клику на кнопку "Сформировать аналитику дня".
    Использует уже загруженный assets[], считает скоры и рендерит.
    ============================================================ */
-function generate() {
+async function generate() {
 
-  const rankedAssets    = calculateScores(assets);
-  const recommendations = generateRecommendations(rankedAssets);
+  try {
 
-  
-  saveHistory(recommendations);
-  render(recommendations);
+    document.getElementById("output")
+      .innerHTML =
+      "<div class='card'>Анализирую рынок...</div>";
+
+    const result =
+      await askGemini();
+
+    renderAIRecommendation(
+      result
+    );
+
+  }
+  catch(error) {
+
+    console.error(error);
+
+    document.getElementById("output")
+      .innerHTML =
+      "<div class='card'>Ошибка Gemini API</div>";
+
+  }
+
 }
 /* ============================================================
    КОНЕЦ БЛОКА: ТОЧКА ВХОДА КНОПКИ
