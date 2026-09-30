@@ -28,6 +28,21 @@ TYPE_NAMES = {
     "option": "Опционы",
     "sp": "Структурные продукты",
 }
+SECTOR_NAMES = {
+    "financial": "Финансы",
+    "energy": "Нефть и газ",
+    "materials": "Сырьё и металлы",
+    "it": "IT",
+    "telecom": "Телеком",
+    "consumer": "Потребительский",
+    "health_care": "Здравоохранение",
+    "industrials": "Промышленность",
+    "utilities": "Электроэнергетика",
+    "real_estate": "Недвижимость",
+    "government": "Гособлигации",
+    "municipal": "Муниципальные облигации",
+    "other": "Прочее",
+}
 INFO_METHODS = {
     "share": "InstrumentsService/ShareBy",
     "bond": "InstrumentsService/BondBy",
@@ -56,6 +71,7 @@ class Report:
         self.client = client
         self.raw_dir = raw_dir
         self._info_cache: dict[str, dict] = {}
+        self.rates: dict[str, Decimal] = {"rub": Decimal(1)}
 
     def call(self, method: str, body: dict | None = None, raw_name: str | None = None) -> dict:
         data = self.client.call(method, body)
@@ -83,15 +99,23 @@ class Report:
             print(f"Не удалось получить купоны {uid}: {e}", file=sys.stderr)
             return []
 
-    def account_section(self, account: dict, now: datetime) -> str:
-        acc_id = account["id"]
-        pf = self.call(
-            "OperationsService/GetPortfolio",
-            {"accountId": acc_id, "currency": "RUB"},
-            f"portfolio_{acc_id}",
-        )
+    def collect_rates(self, portfolios: list[dict]) -> None:
+        """Курсы валют к рублю берём из валютных позиций: USD000UTSTOM -> usd и т.п."""
+        for pf in portfolios:
+            for p in pf.get("positions", []):
+                if p.get("instrumentType") != "currency":
+                    continue
+                info = self.instrument(p.get("instrumentUid", ""), "currency")
+                code = (info.get("ticker") or "")[:3].lower()
+                price = q(p.get("currentPrice"))
+                if code and price:
+                    self.rates[code] = price
+
+    def account_section(self, account: dict, pf: dict, now: datetime) -> str:
         total = q(pf.get("totalAmountPortfolio"))
-        out = [f"## Счёт: {account.get('name') or acc_id}", ""]
+        out = [f"## Счёт: {account.get('name') or account['id']}", ""]
+        if not total and not pf.get("positions"):
+            return "\n".join(out + ["Счёт пустой.", ""])
         out.append(f"Стоимость портфеля: **{money(total)} ₽**")
         exp = pf.get("expectedYield")
         if exp:
@@ -109,6 +133,8 @@ class Report:
             avg = q(p.get("averagePositionPrice"))
             cur = (p.get("currentPrice") or {}).get("currency", "rub").lower()
             value = qty * (price + nkd)
+            rate = self.rates.get(cur)
+            value_rub = value * rate if rate is not None else None
             cost = qty * avg
             pnl = q(p.get("expectedYield"))
             positions.append(
@@ -125,13 +151,13 @@ class Report:
                     "avg": avg,
                     "cur": cur,
                     "value": value,
+                    "value_rub": value_rub,
                     "pnl": pnl,
                     "pnl_pct": pnl / cost if cost else None,
-                    # Доля считается только для рублёвых позиций: total в рублях
-                    "share": value / total if total and cur == "rub" else None,
+                    "share": value_rub / total if total and value_rub is not None else None,
                 }
             )
-        positions.sort(key=lambda x: x["value"] if x["cur"] == "rub" else Decimal(0), reverse=True)
+        positions.sort(key=lambda x: x["value_rub"] or Decimal(0), reverse=True)
 
         # Структура по классам: берём итоги, которые считает сам брокер
         out.append("### Структура по классам активов")
@@ -159,7 +185,7 @@ class Report:
                 money(p["qty"], 0) if p["qty"] == p["qty"].to_integral() else money(p["qty"]),
                 f"{money(p['avg'])} {p['cur']}",
                 f"{money(p['price'])} {p['cur']}",
-                f"{money(p['value'])} {p['cur']}",
+                money(p["value_rub"]) if p["cur"] == "rub" else f"{money(p['value'])} {p['cur']} ≈ {money(p['value_rub'])}",
                 money(p["pnl"]),
                 pct(p["pnl_pct"]),
                 pct(p["share"]),
@@ -168,13 +194,24 @@ class Report:
         ]
         out += [
             table(
-                ["Тикер", "Название", "Тип", "Кол-во", "Ср. цена", "Цена", "Стоимость", "P/L", "P/L %", "Доля"],
+                ["Тикер", "Название", "Тип", "Кол-во", "Ср. цена", "Цена", "Стоимость, ₽", "P/L", "P/L %", "Доля"],
                 rows,
             ),
             "",
         ]
-        if any(p["cur"] != "rub" for p in positions):
-            out += ["Для позиций не в рублях доля не посчитана: цены в валюте инструмента.", ""]
+        foreign = sorted({p["cur"] for p in positions if p["cur"] != "rub"})
+        if foreign:
+            known = [f"{c.upper()} {money(self.rates[c])} ₽" for c in foreign if c in self.rates]
+            missing = [c.upper() for c in foreign if c not in self.rates]
+            note = "Цены и P/L иностранных бумаг в валюте бумаги, стоимость пересчитана в рубли"
+            if known:
+                note += " по курсу " + ", ".join(known)
+            if missing:
+                note += f". Нет курса для {', '.join(missing)}: доля по таким бумагам не посчитана"
+            out += [note + ".", ""]
+        dead = [p["ticker"] for p in positions if p["qty"] and not p["price"] and p["type"] != "currency"]
+        if dead:
+            out += [f"Без цены (заблокированные или неторгуемые): {', '.join(dead)}.", ""]
 
         top = [p for p in positions if p["share"] is not None and p["type"] != "currency"][:5]
         if top:
@@ -185,12 +222,19 @@ class Report:
                 out.append("Больше 10% портфеля: " + ", ".join(f"{p['ticker']} ({pct(p['share'])})" for p in big))
             out.append("")
 
+        # Сектора у фондов в API недостоверны (денежный фонд LQDT помечен как акции),
+        # поэтому фонды идут одной строкой
         by_sector: dict[str, Decimal] = defaultdict(Decimal)
         for p in positions:
-            if p["share"] is not None and p["type"] in ("share", "bond", "etf"):
-                by_sector[p["sector"]] += p["value"]
+            if p["value_rub"] is None:
+                continue
+            if p["type"] in ("share", "bond"):
+                by_sector[SECTOR_NAMES.get(p["sector"], p["sector"])] += p["value_rub"]
+            elif p["type"] == "etf":
+                by_sector["Фонды (без разбивки)"] += p["value_rub"]
+        by_sector = {k: v for k, v in by_sector.items() if v}
         if by_sector:
-            out.append("### По секторам (акции, облигации, фонды)")
+            out.append("### По секторам")
             rows = [
                 [s, money(v), pct(v / total)]
                 for s, v in sorted(by_sector.items(), key=lambda kv: kv[1], reverse=True)
@@ -286,8 +330,31 @@ class Report:
         if not accounts:
             raise TInvestError("Не найдено ни одного открытого счёта (или токен не даёт к ним доступа)")
         parts = [f"# Портфель T-Invest на {now.astimezone().strftime('%d.%m.%Y %H:%M')}", ""]
-        for acc in accounts:
-            parts.append(self.account_section(acc, now))
+        portfolios = [
+            self.call(
+                "OperationsService/GetPortfolio",
+                {"accountId": acc["id"], "currency": "RUB"},
+                f"portfolio_{acc['id']}",
+            )
+            for acc in accounts
+        ]
+        self.collect_rates(portfolios)
+        grand = sum((q(pf.get("totalAmountPortfolio")) for pf in portfolios), Decimal(0))
+        if len(accounts) > 1:
+            parts += [f"Всего по счетам: **{money(grand)} ₽**", ""]
+            parts += [
+                table(
+                    ["Счёт", "Стоимость, ₽", "Доля"],
+                    [
+                        [a.get("name") or a["id"], money(q(pf.get("totalAmountPortfolio"))),
+                         pct(q(pf.get("totalAmountPortfolio")) / grand if grand else None)]
+                        for a, pf in zip(accounts, portfolios)
+                    ],
+                ),
+                "",
+            ]
+        for acc, pf in zip(accounts, portfolios):
+            parts.append(self.account_section(acc, pf, now))
         return "\n".join(parts)
 
 
