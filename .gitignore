@@ -1,0 +1,5 @@
+# Отчёты и сырые ответы API содержат данные о портфеле
+tinvest/reports/
+tinvest/raw/
+*.report.md
+__pycache__/
